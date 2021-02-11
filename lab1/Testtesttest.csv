@@ -1,0 +1,17 @@
+Data from North Dakota Agricultural Weather Network https://ndawn.ndsu.nodak.edu
+Monthly Observation Table for February 1 2020
+Flag Definition Line: M - Missing; E - Estimated; N/A - Not Available
+Station Name,Latitude,Longitude,Elevation,Year,Month,Avg Temp,Number Missing,Number Estimated,Monthly Normal Average Air Temperature,Departure from Normal Monthly Average Air Temperature,Number Missing,Number Estimated
+,deg,deg,ft,,,Degrees F,,,Degrees F,Degrees F,,
+Zeeland,46.013378,-99.687587,2070,2020,2,15.701,0,0,17.00,-1.299,0,0
+Zeeland,46.013378,-99.687587,2070,2020,3,29.808,0,0,28.00,1.808,0,0
+Zeeland,46.013378,-99.687587,2070,2020,4,37.843,0,0,43.00,-5.157,0,0
+Zeeland,46.013378,-99.687587,2070,2020,5,52.073,0,0,55.00,-2.927,0,0
+Zeeland,46.013378,-99.687587,2070,2020,6,67.751,0,0,64.00,3.751,0,0
+Zeeland,46.013378,-99.687587,2070,2020,7,71.383,0,0,71.00,0.383,0,0
+Zeeland,46.013378,-99.687587,2070,2020,8,68.614,0,0,69.00,-0.386,0,0
+Zeeland,46.013378,-99.687587,2070,2020,9,55.591,0,0,58.00,-2.409,0,0
+Zeeland,46.013378,-99.687587,2070,2020,10,35.849,0,0,45.00,-9.151,0,0
+Zeeland,46.013378,-99.687587,2070,2020,11,32.055,0,0,29.00,3.055,0,0
+Zeeland,46.013378,-99.687587,2070,2020,12,22.020,0,0,16.00,6.020,0,0
+Zeeland,46.013378,-99.687587,2070,2021,1,22.072,0,0,12.00,10.072,0,0
