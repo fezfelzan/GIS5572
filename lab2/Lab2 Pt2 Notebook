@@ -1,0 +1,1257 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 42,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import arcpy\n",
+    "from arcpy.sa import *\n",
+    "import os"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### XY Table to Point"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\latlongcoords.shp<h2>Messages</h2>Start Time: Thursday, March 4, 2021 9:03:59 AM<br/>Succeeded at Thursday, March 4, 2021 9:04:01 AM (Elapsed Time: 1.70 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\latlongcoords.shp'>"
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.XYTableToPoint(r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\PART_TWO\\arcii_labii_lat_long_table2.csv\",\n",
+    "                                r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\latlongcoords\",\n",
+    "                                \"Long (X)\",\n",
+    "                                \"Lat (Y)\",\n",
+    "                                None,\n",
+    "                                \"GEOGCS['GCS_North_American_1983',DATUM['D_North_American_1983',SPHEROID['GRS_1980',6378137.0,298.257222101]],PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]];-400 -400 1000000000;-100000 10000;-100000 10000;8.98315284119521E-09;0.001;0.001;IsHighPrecision\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### (SELECT BY ATTRIBUTES TO GET “RELEVANT_MN_COUNTIES)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "mn_county_shp = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\PART_TWO\\shp_bdry_counties_in_minnesota (1)\\mn_county_boundaries.shp\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\relevant_mn_counties<h2>Messages</h2>Start Time: Thursday, March 4, 2021 9:16:38 AM<br/>Succeeded at Thursday, March 4, 2021 9:16:39 AM (Elapsed Time: 1.45 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\relevant_mn_counties'>"
+      ]
+     },
+     "execution_count": 9,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "relevant_mn_counties = arcpy.management.SelectLayerByAttribute(mn_county_shp,\n",
+    "                                                               \"NEW_SELECTION\",\n",
+    "                                                               \"CTY_NAME = 'Winona' Or CTY_NAME = 'Wabasha' Or CTY_NAME = 'Olmsted'\")\n",
+    "arcpy.CopyFeatures_management(relevant_mn_counties, 'relevant_mn_counties')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Hydrography Intersect"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[<arcpy._mp.Layer object at 0x0000016C323CB048>]"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "aprx = arcpy.mp.ArcGISProject(\"CURRENT\")\n",
+    "\n",
+    "aprx.defaultGeodatabase = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\"\n",
+    "\n",
+    "m = aprx.listMaps(\"Map\")[0]\n",
+    "\n",
+    "hydro_lyrpath = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\PART_TWO\\fgdb_water_national_hydrography_data\\NHD Hydrography.lyr\"\n",
+    "\n",
+    "HydroLyr = arcpy.mp.LayerFile(hydro_lyrpath)\n",
+    "\n",
+    "m.addLayer(HydroLyr, \"TOP\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\relevant_mn_rivers<h2>Messages</h2>Start Time: Thursday, March 4, 2021 9:27:55 AM<br/>Reading Features...<br/>Cracking Features...<br/>Assembling Features...<br/>Succeeded at Thursday, March 4, 2021 9:27:59 AM (Elapsed Time: 4.27 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\relevant_mn_rivers'>"
+      ]
+     },
+     "execution_count": 12,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.analysis.Intersect(r\"Hydrography\\NHDFlowline #;relevant_mn_counties #\",\n",
+    "                         r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\relevant_mn_rivers\",\n",
+    "                         \"ALL\",\n",
+    "                         None,\n",
+    "                         \"INPUT\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Clip Land Cover Raster to Study Area"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\lc_mn_2011_Clip2<h2>Messages</h2>Start Time: Thursday, March 4, 2021 9:39:38 AM<br/>Building Pyramids...<br/>Succeeded at Thursday, March 4, 2021 9:39:40 AM (Elapsed Time: 2.37 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\lc_mn_2011_Clip2'>"
+      ]
+     },
+     "execution_count": 15,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "path_to_landcover = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\PART_TWO\\lc_mn_2011.gdb\\lc_mn_2011\"\n",
+    "\n",
+    "arcpy.management.Clip(path_to_landcover,\n",
+    "                      \"524966.6376 4853462.8394 637916.1448 4922619.9426\",\n",
+    "                      r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\lc_mn_2011_Clip2\",\n",
+    "                      \"relevant_mn_counties\",\n",
+    "                      \"255\",\n",
+    "                      \"NONE\",\n",
+    "                      \"NO_MAINTAIN_EXTENT\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Resampling each DEM raster to be lower resolution"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\Olmsted_dem_3m_m_Resample<h2>Messages</h2>Start Time: Thursday, March 4, 2021 9:54:07 AM<br/>Building Pyramids...<br/>Succeeded at Thursday, March 4, 2021 9:55:44 AM (Elapsed Time: 1 minutes 36 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\Olmsted_dem_3m_m_Resample'>"
+      ]
+     },
+     "execution_count": 17,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "winona_3mDEM = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\PART_TWO\\elevation_data.gdb\\dem_3m_m\"\n",
+    "\n",
+    "wabasha_3mDEM = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\PART_TWO\\wabasha_elevation_data.gdb\\dem_3m_m\"\n",
+    "\n",
+    "olmsted_3mDEM = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\PART_TWO\\olmsted_elevation_data.gdb\\dem_3m_m\"\n",
+    "\n",
+    "\n",
+    "arcpy.management.Resample(winona_3mDEM,\n",
+    "                          r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\Winona_dem_3m_m_Resample\",\n",
+    "                          \"3 3\",\n",
+    "                          \"BILINEAR\")\n",
+    "arcpy.management.Resample(wabasha_3mDEM,\n",
+    "                          r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\Wabasha_dem_3m_m_Resample\",\n",
+    "                          \"3 3\",\n",
+    "                          \"BILINEAR\")\n",
+    "arcpy.management.Resample(olmsted_3mDEM,\n",
+    "                          r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\Olmsted_dem_3m_m_Resample\",\n",
+    "                          \"3 3\",\n",
+    "                          \"BILINEAR\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "default_gdb = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 20,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\CombineDEM'"
+      ]
+     },
+     "execution_count": 20,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "os.path.join(default_gdb, \"CombineDEM\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Create Raster Dataset"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 22,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\combine_DEM<h2>Messages</h2>Start Time: Thursday, March 4, 2021 10:01:54 AM<br/>Succeeded at Thursday, March 4, 2021 10:01:55 AM (Elapsed Time: 0.69 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\combine_DEM'>"
+      ]
+     },
+     "execution_count": 22,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.CreateRasterDataset(default_gdb, \n",
+    "                                     \"combine_DEM\",\n",
+    "                                     None,\n",
+    "                                     \"32_BIT_FLOAT\",\n",
+    "                                     \"PROJCS['NAD_1983_UTM_Zone_15N',GEOGCS['GCS_North_American_1983',DATUM['D_North_American_1983',SPHEROID['GRS_1980',6378137.0,298.257222101]],PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]],PROJECTION['Transverse_Mercator'],PARAMETER['False_Easting',500000.0],PARAMETER['False_Northing',0.0],PARAMETER['Central_Meridian',-93.0],PARAMETER['Scale_Factor',0.9996],PARAMETER['Latitude_Of_Origin',0.0],UNIT['Meter',1.0]]\",\n",
+    "                                     1, '', \"PYRAMIDS -1 NEAREST DEFAULT 75 NO_SKIP NO_SIPS\",\n",
+    "                                     \"128 128\", \"LZ77\", \"-5120763.26772284 9997963.94293634\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Creating Mosaic out of all three county DEMs"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 23,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\Combine_DEM<h2>Messages</h2>Start Time: Thursday, March 4, 2021 10:03:00 AM<br/>Winona_dem_3m_m_Resample is loading...<br/>Wabasha_dem_3m_m_Resample is loading...<br/>Olmsted_dem_3m_m_Resample is loading...<br/>Succeeded at Thursday, March 4, 2021 10:08:09 AM (Elapsed Time: 5 minutes 8 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\Combine_DEM'>"
+      ]
+     },
+     "execution_count": 23,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.Mosaic(\"Winona_dem_3m_m_Resample;Wabasha_dem_3m_m_Resample;Olmsted_dem_3m_m_Resample\",\n",
+    "                        os.path.join(default_gdb, \"Combine_DEM\"),\n",
+    "                        \"LAST\",\n",
+    "                        \"FIRST\",\n",
+    "                        None, None, \"NONE\", 0, \"NONE\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Mosaic to New Raster"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\mosaic_rast<h2>Messages</h2>Start Time: Thursday, March 4, 2021 10:14:49 AM<br/>combine_DEM is loading...<br/>Succeeded at Thursday, March 4, 2021 10:19:19 AM (Elapsed Time: 4 minutes 30 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\mosaic_rast'>"
+      ]
+     },
+     "execution_count": 24,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.MosaicToNewRaster(\"combine_DEM\",\n",
+    "                                   default_gdb,\n",
+    "                                   \"mosaic_rast\",\n",
+    "                                   \"PROJCS['NAD_1983_UTM_Zone_15N',GEOGCS['GCS_North_American_1983',DATUM['D_North_American_1983',SPHEROID['GRS_1980',6378137.0,298.257222101]],PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]],PROJECTION['Transverse_Mercator'],PARAMETER['False_Easting',500000.0],PARAMETER['False_Northing',0.0],PARAMETER['Central_Meridian',-93.0],PARAMETER['Scale_Factor',0.9996],PARAMETER['Latitude_Of_Origin',0.0],UNIT['Meter',1.0]]\",\n",
+    "                                   \"32_BIT_FLOAT\",\n",
+    "                                   None, 1, \"LAST\", \"FIRST\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Running \"Slope\" function on simplified DEM covering entire study area"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "out_raster = arcpy.sa.Slope(\"mosaic_rast\",\n",
+    "                            \"DEGREE\",\n",
+    "                            0.304800609601219,\n",
+    "                            \"PLANAR\",\n",
+    "                            \"METER\"); out_raster.save(os.path.join(default_gdb, \"slope_grid\"))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Reclassifing slope to be on 1 - 10 scale:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "out_raster = arcpy.sa.Reclassify(\"slope_grid\",\n",
+    "                                 \"VALUE\",\n",
+    "                                 \"0 7.127013 1;7.127013 14.254025 2;14.254025 21.381038 3;21.381038 28.508051 4;28.508051 35.635063 5;35.635063 42.762076 6;42.762076 49.889088 7;49.889088 57.016101 8;57.016101 64.143114 9;64.143114 71.270126 10\",\n",
+    "                                 \"DATA\"); out_raster.save(os.path.join(default_gdb, \"slope_reclass\"))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Reclassifying Land Use raster to be on 1 - 10 scale"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Subjective decisions were made here -- \n",
+    "#### 1 = grassland areas (most preferred), 4 = developed areas (bridges...preferred over crossing thru mud or rivers), 7= agricultural land (not preferred), 10 = open water (wont cross anway, as rivers will be set as boundaries)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "out_raster = arcpy.sa.Reclassify(\"lc_mn_2011_Clip2\",\n",
+    "                                 \"Value\",\n",
+    "                                 \"11 10;21 4;22 4;23 4;24 4;31 4;41 1;42 1;43 1;52 1;71 1;81 7;82 7;90 4;95 4\",\n",
+    "                                 \"DATA\"); out_raster.save(os.path.join(default_gdb, \"Reclass_lc_m1\"))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Buffering county & local roadway line features @ 100 meters, so that these polygons can erase the river features wherever they intersect (as, if a road crosses a river, Dory may use this road as a bridge over a river)."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 28,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[<arcpy._mp.Layer object at 0x0000016C03451860>]"
+      ]
+     },
+     "execution_count": 28,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "roads_lyrpath = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\PART_TWO\\fgdb_trans_roads_mndot_tis\\DOT Roads.lyr\"\n",
+    "\n",
+    "RoadsLyr = arcpy.mp.LayerFile(roads_lyrpath)\n",
+    "\n",
+    "m.addLayer(RoadsLyr, \"TOP\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Clipping county roads to study area:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\CountyRoads_Clip1<h2>Messages</h2>Start Time: Thursday, March 4, 2021 10:44:14 AM<br/>Assembling Features...<br/>Reading Features...<br/>Cracking Features...<br/>Succeeded at Thursday, March 4, 2021 10:44:18 AM (Elapsed Time: 3.37 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\CountyRoads_Clip1'>"
+      ]
+     },
+     "execution_count": 30,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.analysis.Clip(r\"DOT Roads\\County\",\n",
+    "                    \"relevant_mn_counties\",\n",
+    "                    os.path.join(default_gdb, \"CountyRoads_Clip1\"),\n",
+    "                    None)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Buffering county roads:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\CountyBuffer<h2>Messages</h2>Start Time: Thursday, March 4, 2021 10:45:52 AM<br/>Succeeded at Thursday, March 4, 2021 10:46:01 AM (Elapsed Time: 8.93 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\CountyBuffer'>"
+      ]
+     },
+     "execution_count": 31,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.analysis.Buffer(\"CountyRoads_Clip1\",\n",
+    "                      os.path.join(default_gdb, \"CountyBuffer\"),\n",
+    "                      \"100 Meters\",\n",
+    "                      \"FULL\",\n",
+    "                      \"ROUND\",\n",
+    "                      \"NONE\", None,\n",
+    "                      \"PLANAR\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Clipping local roads to study area:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\LocalRoads_Clip1<h2>Messages</h2>Start Time: Thursday, March 4, 2021 10:46:54 AM<br/>Assembling Features...<br/>Reading Features...<br/>Cracking Features...<br/>Succeeded at Thursday, March 4, 2021 10:46:57 AM (Elapsed Time: 3.46 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\LocalRoads_Clip1'>"
+      ]
+     },
+     "execution_count": 32,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.analysis.Clip(r\"DOT Roads\\Local\",\n",
+    "                    \"relevant_mn_counties\",\n",
+    "                    os.path.join(default_gdb, \"LocalRoads_Clip1\"),\n",
+    "                    None)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Buffering local roads:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 33,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\LocalBuffer<h2>Messages</h2>Start Time: Thursday, March 4, 2021 10:47:49 AM<br/>Succeeded at Thursday, March 4, 2021 10:47:57 AM (Elapsed Time: 7.83 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\LocalBuffer'>"
+      ]
+     },
+     "execution_count": 33,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.analysis.Buffer(\"LocalRoads_Clip1\",\n",
+    "                      os.path.join(default_gdb, \"LocalBuffer\"),\n",
+    "                      \"100 Meters\",\n",
+    "                      \"FULL\",\n",
+    "                      \"ROUND\",\n",
+    "                      \"NONE\", None,\n",
+    "                      \"PLANAR\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Erasing parts of river layer where 100m roads buffer layer exists:"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### step 1: creating updated river layer by erasing county roads"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\rivers_erase1<h2>Messages</h2>Start Time: Thursday, March 4, 2021 10:52:16 AM<br/>Reading Features...<br/>Processing Tiles...<br/>Assembling Tile Features...<br/>Succeeded at Thursday, March 4, 2021 10:52:45 AM (Elapsed Time: 28.89 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\rivers_erase1'>"
+      ]
+     },
+     "execution_count": 34,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.analysis.Erase(\"relevant_mn_rivers\",\n",
+    "                     \"CountyBuffer\",\n",
+    "                     os.path.join(default_gdb, \"rivers_erase1\"),\n",
+    "                     None)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### step 2: creating 'even more' updated river layer by erasing local roads from prev. erase layer:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 36,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\rivers_erase2<h2>Messages</h2>Start Time: Thursday, March 4, 2021 10:54:29 AM<br/>Reading Features...<br/>Processing Tiles...<br/>Assembling Tile Features...<br/>Succeeded at Thursday, March 4, 2021 10:54:57 AM (Elapsed Time: 28.76 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\rivers_erase2'>"
+      ]
+     },
+     "execution_count": 36,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.analysis.Erase(\"rivers_erase1\",\n",
+    "                     \"LocalBuffer\",\n",
+    "                     os.path.join(default_gdb, \"rivers_erase2\"),\n",
+    "                     None)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Creating a 30m buffer around the river line feature layer (which has pieces of its line removed where roads intersect). The buffer is to ensure the river has a large enough pixel width so that Dory can not cross in between pixels in the river."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 37,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "arcpy.env.worspace = default_gdb"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 38,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\river_buff_30<h2>Messages</h2>Start Time: Thursday, March 4, 2021 10:56:52 AM<br/>Succeeded at Thursday, March 4, 2021 10:57:12 AM (Elapsed Time: 19.28 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\river_buff_30'>"
+      ]
+     },
+     "execution_count": 38,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.analysis.Buffer(\"rivers_erase2\",\n",
+    "                      \"river_buff_30\",\n",
+    "                      \"30 Meters\",\n",
+    "                      \"FULL\",\n",
+    "                      \"ROUND\",\n",
+    "                      \"NONE\", None,\n",
+    "                      \"PLANAR\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Creating WEIGHTED Cost Surface, using Land Use Reclass layer, and Slope Reclass layer."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### The amount of weight given to slope vs. land use was subjective, but based on the description of Dory's preferences. I interpreted the prompt as, it is twice as important to Dory to navigate areas of land that are not muddy farmland, than navigating areas of high inclines/slopes. The below calculation reflects this weighted analysis"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 50,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "out_rc_multi_raster = RasterCalculator([\"Reclass_lc_m1\", \"slope_reclass\"],\n",
+    "                                       [\"x\", \"y\"], \".66*(x)+.34*(y)\")\n",
+    "out_rc_multi_raster.save(os.path.join(default_gdb,\"weighted_cost_surface3\"))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Converting 'swiss cheese' river 30m buffer polygon to raster "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 51,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\river_buff_30_PolygonToRaster1<h2>Messages</h2>Start Time: Thursday, March 4, 2021 11:38:36 AM<br/>Succeeded at Thursday, March 4, 2021 11:38:39 AM (Elapsed Time: 3.21 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\river_buff_30_PolygonToRaster1'>"
+      ]
+     },
+     "execution_count": 51,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.conversion.PolygonToRaster(\"river_buff_30\",\n",
+    "                                 \"Enabled\",\n",
+    "                                 \"river_buff_30_PolygonToRaster1\",\n",
+    "                                 \"CELL_CENTER\",\n",
+    "                                 \"NONE\",\n",
+    "                                 \"weighted_cost_surface3\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Using raster calculator to turn weighted cost surface raster into one where areas of inhabited by river equal value 0, and any other area in the study area extent equal the previously calculated cost surface values"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 52,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "output_raster = arcpy.sa.RasterCalculator([\"river_buff_30_PolygonToRaster1\", \"weighted_cost_surface3\"],\n",
+    "                                          [\"x\", \"y\"],\n",
+    "                                          \"(x*0)*(y)\")\n",
+    "    \n",
+    "out_rc_multi_raster.save(\"times_by_zero1\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 53,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "out_raster = arcpy.sa.Reclassify(\"river_buff_30_PolygonToRaster1\",\n",
+    "                                 \"Value\",\n",
+    "                                 \"1 0\",\n",
+    "                                 \"DATA\"); out_raster.save(\"zerozero\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Creating Raster Dataset, to form mosaic out of above river raster (just the areas where rivers are will be pixel value 0 ..... and the cost surface raster will have the same values). The river will overlap the cost surface raster, so that all of the values occupied by river will be 0. This will be useful, as we can reclassify values that are 0 to be NoData, to set up boundaries where Dory can not travel thru"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 56,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\another_rastdataset<h2>Messages</h2>Start Time: Thursday, March 4, 2021 11:48:05 AM<br/>Succeeded at Thursday, March 4, 2021 11:48:06 AM (Elapsed Time: 0.68 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\another_rastdataset'>"
+      ]
+     },
+     "execution_count": 56,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.CreateRasterDataset(default_gdb,\n",
+    "                                     \"another_rastdataset\",\n",
+    "                                     None,\n",
+    "                                     \"32_BIT_FLOAT\",\n",
+    "                                     \"PROJCS['NAD_1983_UTM_Zone_15N',GEOGCS['GCS_North_American_1983',DATUM['D_North_American_1983',SPHEROID['GRS_1980',6378137.0,298.257222101]],PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]],PROJECTION['Transverse_Mercator'],PARAMETER['False_Easting',500000.0],PARAMETER['False_Northing',0.0],PARAMETER['Central_Meridian',-93.0],PARAMETER['Scale_Factor',0.9996],PARAMETER['Latitude_Of_Origin',0.0],UNIT['Meter',1.0]]\",\n",
+    "                                     1, '',\n",
+    "                                     \"PYRAMIDS -1 NEAREST DEFAULT 75 NO_SKIP NO_SIPS\",\n",
+    "                                     \"128 128\", \"LZ77\",\n",
+    "                                     \"-5120763.26772284 9997963.94293634\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### creating mosaic of river=0 raster and weighted cost surface raster:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 57,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\another_rastdataset<h2>Messages</h2>Start Time: Thursday, March 4, 2021 11:49:44 AM<br/>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\weighted_cost_surface3 is loading...<br/>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\zerozero is loading...<br/>Succeeded at Thursday, March 4, 2021 11:49:49 AM (Elapsed Time: 4.51 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\another_rastdataset'>"
+      ]
+     },
+     "execution_count": 57,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.Mosaic(\"weighted_cost_surface3;zerozero\",\n",
+    "                        \"another_rastdataset\",\n",
+    "                        \"LAST\",\n",
+    "                        \"FIRST\",\n",
+    "                        None, None, \"NONE\", 0, \"NONE\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Exporting mosaic dataset to new raster, where river raster pixel values overlap/overwrite the weighted cost surface raster's:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 58,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\uh_ohh<h2>Messages</h2>Start Time: Thursday, March 4, 2021 11:51:25 AM<br/>another_rastdataset is loading...<br/>Succeeded at Thursday, March 4, 2021 11:51:27 AM (Elapsed Time: 1.95 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\uh_ohh'>"
+      ]
+     },
+     "execution_count": 58,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.MosaicToNewRaster(\"another_rastdataset\",\n",
+    "                                   default_gdb,\n",
+    "                                   \"uh_ohh\",\n",
+    "                                   \"PROJCS['NAD_1983_UTM_Zone_15N',GEOGCS['GCS_North_American_1983',DATUM['D_North_American_1983',SPHEROID['GRS_1980',6378137.0,298.257222101]],PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]],PROJECTION['Transverse_Mercator'],PARAMETER['False_Easting',500000.0],PARAMETER['False_Northing',0.0],PARAMETER['Central_Meridian',-93.0],PARAMETER['Scale_Factor',0.9996],PARAMETER['Latitude_Of_Origin',0.0],UNIT['Meter',1.0]]\",\n",
+    "                                   \"32_BIT_FLOAT\",\n",
+    "                                   None,\n",
+    "                                   1,\n",
+    "                                   \"LAST\",\n",
+    "                                   \"FIRST\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### reclassifying raster so that \"0\" has its own class; 0.1 - last value is  next class break , and the value of that class is \"1\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 59,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "out_raster = arcpy.sa.Reclassify(\"uh_ohh\",\n",
+    "                                 \"VALUE\",\n",
+    "                                 \"0 0.100000 0;0.100000 9.320001 1\",\n",
+    "                                 \"DATA\"); out_raster.save(\"rivers_vs_non\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### Multiplying raster of \"river = 0, everything else =1\" against \"weighted cost surface\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 61,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "output_raster = arcpy.sa.RasterCalculator([\"weighted_cost_surface3\",\"rivers_vs_non\"],\n",
+    "                                          [\"x\", \"y\"],\n",
+    "                                          \"x*y\")\n",
+    "output_raster.save(\"multiplied_zeros_and_ones\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Setting all 0 pixel values (river) as NULL (so that the rivers will become walking boundaries)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 62,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "out_raster = arcpy.sa.SetNull(\"multiplied_zeros_and_ones\",\n",
+    "                              \"multiplied_zeros_and_ones\",\n",
+    "                              \"VALUE = 0\"); out_raster.save(\"SetNull_mult1\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Creating a buffer around Dory's start/end X/Y coords, so that these buffer areas can be transformed into rasters"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 63,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\points_buffer<h2>Messages</h2>Start Time: Thursday, March 4, 2021 12:08:13 PM<br/>Succeeded at Thursday, March 4, 2021 12:08:14 PM (Elapsed Time: 0.81 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\points_buffer'>"
+      ]
+     },
+     "execution_count": 63,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.analysis.Buffer(\"latlongcoords\",\n",
+    "                      \"points_buffer\",\n",
+    "                      \"25 Meters\",\n",
+    "                      \"FULL\",\n",
+    "                      \"ROUND\",\n",
+    "                      \"NONE\", None,\n",
+    "                      \"PLANAR\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Transporting \"start place\" buffered coord into its own feature class -- transforming isolated start place buffer area into raster. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 74,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\START1<h2>Messages</h2>Start Time: Thursday, March 4, 2021 12:26:19 PM<br/>Succeeded at Thursday, March 4, 2021 12:26:19 PM (Elapsed Time: 0.66 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\START1'>"
+      ]
+     },
+     "execution_count": 74,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "startplace = arcpy.management.SelectLayerByAttribute(\"points_buffer\",\n",
+    "                                                     \"NEW_SELECTION\",\n",
+    "                                                     \"OBJECTID = 1\")\n",
+    "arcpy.CopyFeatures_management(startplace, 'START1')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 75,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\STARTPOINT<h2>Messages</h2>Start Time: Thursday, March 4, 2021 12:27:32 PM<br/>WARNING 000117: Warning empty output generated.<br/>Succeeded at Thursday, March 4, 2021 12:27:33 PM (Elapsed Time: 1.06 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\STARTPOINT'>"
+      ]
+     },
+     "execution_count": 75,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.conversion.PolygonToRaster(\"START1\",\n",
+    "                                 \"OBJECTID\",\n",
+    "                                 #object id used, because value just has to be non-0 int\n",
+    "                                 \"STARTPOINT\",\n",
+    "                                 \"CELL_CENTER\",\n",
+    "                                 \"NONE\",\n",
+    "                                 \"Reclass_lc_m1\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Transporting \"end place\" buffered coord into its own feature class -- transforming isolated end place buffer area into raster. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 76,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\END1<h2>Messages</h2>Start Time: Thursday, March 4, 2021 12:28:35 PM<br/>Succeeded at Thursday, March 4, 2021 12:28:36 PM (Elapsed Time: 0.63 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\END1'>"
+      ]
+     },
+     "execution_count": 76,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "endplace = arcpy.management.SelectLayerByAttribute(\"points_buffer\",\n",
+    "                                                   \"NEW_SELECTION\",\n",
+    "                                                   \"OBJECTID = 2\")\n",
+    "arcpy.CopyFeatures_management(endplace, 'END1')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 77,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciiptii clean\\arciiptii clean.gdb\\ENDPOINT<h2>Messages</h2>Start Time: Thursday, March 4, 2021 12:29:18 PM<br/>WARNING 000117: Warning empty output generated.<br/>Succeeded at Thursday, March 4, 2021 12:29:19 PM (Elapsed Time: 1.05 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciiptii clean\\\\arciiptii clean.gdb\\\\ENDPOINT'>"
+      ]
+     },
+     "execution_count": 77,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.conversion.PolygonToRaster(\"END1\",\n",
+    "                                 \"OBJECTID\",\n",
+    "                                 \"ENDPOINT\",\n",
+    "                                 \"CELL_CENTER\",\n",
+    "                                 \"NONE\",\n",
+    "                                 \"Reclass_lc_m1\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Creating Cost Distance Raster"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### (uses start point)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 78,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "out_distance_raster = arcpy.sa.CostDistance(\"STARTPOINT\",\n",
+    "                                            \"SetNull_mult1\",\n",
+    "                                            # SetNull is the weighted cost surface\n",
+    "                                            # with null values where water is\n",
+    "                                            None, None, None, None, None, None,\n",
+    "                                            ''); out_distance_raster.save(\"COSTDIST\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Creating Back Link Raster"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### (uses start point)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 79,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "out_backlink_raster = arcpy.sa.CostBackLink(\"STARTPOINT\",\n",
+    "                                            \"SetNull_mult1\",\n",
+    "                                            # SetNull is the weighted cost surface\n",
+    "                                            # with null values where water is,\n",
+    "                                            None, None, None, None, None, None, ''); out_backlink_raster.save(\"BACKLINK\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Creating Cost Path"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### (uses END point)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 80,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "out_raster = arcpy.sa.CostPath(\"ENDPOINT\",\n",
+    "                               \"COSTDIST\",\n",
+    "                               \"BACKLINK\",\n",
+    "                               \"EACH_CELL\",\n",
+    "                               \"Value\",\n",
+    "                               \"INPUT_RANGE\"); out_raster.save(\"CostPat_END1\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "ArcGISPro",
+   "language": "Python",
+   "name": "python3"
+  },
+  "language_info": {
+   "file_extension": ".py",
+   "name": "python",
+   "version": "3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}

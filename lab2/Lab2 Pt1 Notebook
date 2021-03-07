@@ -1,0 +1,1297 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Importing Packages/ Modules"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import requests\n",
+    "import io\n",
+    "import zipfile\n",
+    "import arcpy\n",
+    "from arcpy import env\n",
+    "import os\n",
+    "#import matplotlib.pyplot as plt"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Establishing URL path to webpage where LiDAR data (.las files) are kept on the MN DNR FTP server; assigning path to variable"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'https://resources.gisdata.mn.gov/pub/data/elevation/lidar/examples/lidar_sample/las/'"
+      ]
+     },
+     "execution_count": 2,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "gis_mngov_home = \"https://resources.gisdata.mn.gov/pub/data/\"\n",
+    "\n",
+    "path_to_lidar = \"elevation/lidar/examples/lidar_sample/las/\"\n",
+    "\n",
+    "full_path = gis_mngov_home + path_to_lidar\n",
+    "full_path"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### The below code is a function I designed in the previous lab -- it's designed to parse the HTML of the MN DNR FTP's pages, and print out only the *data files* that are available to download"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def PrintNavItems(mngov_page):\n",
+    "    \n",
+    "    rqst_objct = requests.get(mngov_page)\n",
+    "    req_text = rqst_objct.text\n",
+    "    split_by_newlines = req_text.split(\"\\n\")\n",
+    "    \n",
+    "    relevent_items = []\n",
+    "    \n",
+    "    for item in split_by_newlines:\n",
+    "        if \"?C=N;O=D\" in item:\n",
+    "            pass\n",
+    "        elif \"/pub/gdrs/\" in item:\n",
+    "            pass\n",
+    "        elif \"a href=\" in item:\n",
+    "            relevent_items.append(item)\n",
+    "        \n",
+    "    for item in relevent_items:\n",
+    "        firstsplit = item.split('<a href=\"')[1]\n",
+    "        sec_split = firstsplit.split('\">')[0]\n",
+    "        print(sec_split)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### Applying the function to the 'path' variable created above:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "/pub/data/elevation/lidar/examples/lidar_sample/\n",
+      "4342-12-05.las\n",
+      "4342-12-06.las\n",
+      "4342-12-07.las\n",
+      "4342-13-03.las\n",
+      "4342-13-04.las\n",
+      "4342-13-05.las\n",
+      "4342-13-06.las\n",
+      "4342-13-07.las\n",
+      "4342-14-03.las\n",
+      "4342-14-04.las\n",
+      "4342-14-05.las\n",
+      "4342-15-03.las\n",
+      "4342-15-04.las\n",
+      "4342-16-03.las\n",
+      "4342-16-04.las\n"
+     ]
+    }
+   ],
+   "source": [
+    "PrintNavItems(full_path)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Creating path to download a specific .las file via post request ( as CKAN requires POSTs instead of GET )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'https://resources.gisdata.mn.gov/pub/data/elevation/lidar/examples/lidar_sample/las/4342-13-03.las'"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "las_selection = \"4342-13-03.las\"\n",
+    "\n",
+    "final_path = full_path + las_selection\n",
+    "final_path"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#saving data received from post to var\n",
+    "post_req_obj = requests.post(final_path)\n",
+    "\n",
+    "#writing data to local disk\n",
+    "with open(r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\4342-13-03.las\", 'wb') as f:\n",
+    "    f.write(post_req_obj.content)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### Confirming file has been downloaded properly:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "['4342-13-03.las', 'arciilabii_clean_runthru']"
+      ]
+     },
+     "execution_count": 7,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "env.workspace = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\"\n",
+    "\n",
+    "arcpy.ListFiles()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Creating Las Dataset:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\my_las_dataset.lasd<h2>Messages</h2>Start Time: Wednesday, March 3, 2021 8:57:59 PM<br/>Succeeded at Wednesday, March 3, 2021 8:58:01 PM (Elapsed Time: 1.94 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\my_las_dataset.lasd'>"
+      ]
+     },
+     "execution_count": 8,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.CreateLasDataset(r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\4342-13-03.las\",\n",
+    "                                  'my_las_dataset.lasd',\n",
+    "                                  #{spatial_reference},  if not assigned,\n",
+    "                                  #  assumes original .las crs\n",
+    "                                 )"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "['4342-13-03.las', '4342-13-03.lasx', 'arciilabii_clean_runthru', 'my_las_dataset.lasd']"
+      ]
+     },
+     "execution_count": 9,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.ListFiles()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Converting .LAS File into both DEM and TIN, Saving Files to Disk"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Converting .LAS to DEM:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\my_output_raster.tif<h2>Messages</h2>Start Time: Wednesday, March 3, 2021 9:00:54 PM<br/>Succeeded at Wednesday, March 3, 2021 9:00:55 PM (Elapsed Time: 0.84 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\my_output_raster.tif'>"
+      ]
+     },
+     "execution_count": 10,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.conversion.LasDatasetToRaster('my_las_dataset.lasd',\n",
+    "                                    'my_output_raster.tif',\n",
+    "                                    'ELEVATION',\n",
+    "                                    'BINNING AVERAGE LINEAR',\n",
+    "                                    'FLOAT',\n",
+    "                                    'CELLSIZE',\n",
+    "                                    10,\n",
+    "                                    1)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Converting .LAS to TIN:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\my_output_tin<h2>Messages</h2>Start Time: Wednesday, March 3, 2021 9:02:09 PM<br/>Succeeded at Wednesday, March 3, 2021 9:02:09 PM (Elapsed Time: 0.73 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\my_output_tin'>"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.LasDatasetToTin_3d('my_las_dataset.lasd',\n",
+    "                         'my_output_tin',\n",
+    "                         'WINDOW_SIZE',\n",
+    "                         'MIN',\n",
+    "                         13.996,\n",
+    "                         500000,\n",
+    "                         1)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##  Exporting PDFs of both DEM and TIN with correct visualization, using arcpy.mp"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Assigning project file, default gdb to var:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "aprx = arcpy.mp.ArcGISProject(\"CURRENT\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "aprx.defaultGeodatabase = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciilabii_clean_runthru\\arciilabii_clean_runthru.gdb\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "aprx.save()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciilabii_clean_runthru\\arciilabii_clean_runthru.aprx\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(aprx.filePath)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### assigning Map to var:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "<arcpy._mp.Map object at 0x000002219717D128>"
+      ]
+     },
+     "execution_count": 16,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "m = aprx.listMaps(\"Map\")[0]\n",
+    "m"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Creating Layer Files (.lyrx) out of both DEM raster and TIN:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 18,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "['4342-13-03.las', '4342-13-03.lasx', 'arciilabii_clean_runthru', 'my_las_dataset.lasd', 'my_output_raster.tfw', 'my_output_raster.tif', 'my_output_raster.tif.aux.xml', 'my_output_raster.tif.ovr', 'my_output_raster.tif.xml', 'my_output_tin']"
+      ]
+     },
+     "execution_count": 18,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.ListFiles()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### raster:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 21,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciilabii_clean_runthru\\arciilabii_clean_runthru.gdb\\DEM_rast_layer.lyr.lyrx<h2>Messages</h2>Start Time: Wednesday, March 3, 2021 9:23:14 PM<br/>Succeeded at Wednesday, March 3, 2021 9:23:14 PM (Elapsed Time: 0.08 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciilabii_clean_runthru\\\\arciilabii_clean_runthru.gdb\\\\DEM_rast_layer.lyr.lyrx'>"
+      ]
+     },
+     "execution_count": 21,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.SaveToLayerFile_management(\"my_output_raster.tif\",\n",
+    "                                 r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciilabii_clean_runthru\\arciilabii_clean_runthru.gdb\\DEM_rast_layer.lyr\",\n",
+    "                                 \"ABSOLUTE\")\n",
+    "                                 #lyr will store absolute path to source data"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### tin:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 24,
+   "metadata": {
+    "scrolled": true
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciilabii_clean_runthru\\tin_layer.lyrx<h2>Messages</h2>Start Time: Wednesday, March 3, 2021 9:27:32 PM<br/>Succeeded at Wednesday, March 3, 2021 9:27:32 PM (Elapsed Time: 0.08 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciilabii_clean_runthru\\\\tin_layer.lyrx'>"
+      ]
+     },
+     "execution_count": 24,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.SaveToLayerFile_management(\"my_output_tin\",\n",
+    "                                 r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciilabii_clean_runthru\\tin_layer.lyr\",\n",
+    "                                 \"ABSOLUTE\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "RastlyrFile = arcpy.mp.LayerFile(r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\DEM_rast_layer.lyrx\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 28,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "TinlyrFile = arcpy.mp.LayerFile(r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciilabii_clean_runthru\\tin_layer.lyrx\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Adding DEM raster .lyrx to  Map/Layout Map Frame, adjusting camera postion on Layout Map Frame, printing PDF of Layout (depicting DEM Raster) "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[<arcpy._mp.Layer object at 0x000002219D3E9198>]"
+      ]
+     },
+     "execution_count": 31,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "m.addLayer(RastlyrFile, \"TOP\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "lyt = aprx.listLayouts(\"Layout\")[0]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 35,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "mapframe = lyt.listElements(\"MAPFRAME_ELEMENT\", \"Map Frame\")[0]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 44,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "my_output_raster.tif\n",
+      "my_output_raster.tif\n",
+      "my_output_tin\n",
+      "my_las_dataset.lasd\n",
+      "World Topographic Map\n",
+      "World Hillshade\n"
+     ]
+    }
+   ],
+   "source": [
+    "for lyr in m.listLayers():\n",
+    "    print(lyr)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 45,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "rast = m.listLayers(\"my_output_raster.tif\")[0]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 46,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "rast_layer_extent = mapframe.getLayerExtent(rast, True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 47,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "mapframe.camera.setExtent(rast_layer_extent)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 48,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\RASTER_DEM.pdf'"
+      ]
+     },
+     "execution_count": 48,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "lyt.exportToPDF(r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\RASTER_DEM.pdf\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Adding TIN .lyrx to  Map/Layout Map Frame, adjusting camera postion on Layout Map Frame, printing PDF of Layout (depicting TIN DEM) "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 49,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "[<arcpy._mp.Layer object at 0x000002219D3E9128>]"
+      ]
+     },
+     "execution_count": 49,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "m.addLayer(TinlyrFile, \"TOP\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 50,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tin = m.listLayers(\"my_output_tin\")[0]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 51,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "tin_extent = mapframe.getLayerExtent(tin, True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 52,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "mapframe.camera.setExtent(tin_extent)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 53,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\TIN.pdf'"
+      ]
+     },
+     "execution_count": 53,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "lyt.exportToPDF(r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\TIN.pdf\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Downloading the annual 30-Year Normals .bil files for precipitation from PRISM"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Assigning URL path to PRISM data server to var:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 54,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "prism_base = r\"https://prism.oregonstate.edu/fetchData.php\""
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Assigning URL path w/ relevant variables embedded (linking to 30-year normals data) to var:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 55,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "allnormals_params = r\"type=all_bil&kind=normals&spatial=4km&elem=ppt&temporal=annual\"\n",
+    "\n",
+    "# (variables discovered using Google Chromes Developer Tools ('Network'))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "#### Constructing URL path which will yield 30-year normals .bil files when inputted into a 'request' "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 56,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "'https://prism.oregonstate.edu/fetchData.php?type=all_bil&kind=normals&spatial=4km&elem=ppt&temporal=annual'"
+      ]
+     },
+     "execution_count": 56,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "path_2_bils = prism_base + \"?\" + allnormals_params\n",
+    "path_2_bils"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### saving data returned from requesting above URL to var:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 57,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "bils_obj = requests.post(path_2_bils)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### printing data to disk:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 58,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "output_path = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\"\n",
+    "\n",
+    "thezip = zipfile.ZipFile(io.BytesIO(bils_obj.content))\n",
+    "thezip.extractall(output_path)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "env.workspace = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\"\n",
+    "\n",
+    "bilfolder_path = r\"C:\\Users\\felza001\\Desktop\\ArcII_Lab02_Working\\PRISM_BILS\\bil_to_tifs\""
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Converting the data into a spacetime cube, exporting space time cube to disk"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Creating mosaic dataset:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 60,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "arcpy.env.workspace = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciilabii_clean_runthru\""
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 62,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "['.backups', '.ipynb_checkpoints', 'arciilabii_clean_runthru.aprx', 'arciilabii_clean_runthru.gdb', 'arciilabii_clean_runthru.tbx', 'ImportLog', 'Index', 'New Notebook.ipynb', 'tin_layer.lyrx']"
+      ]
+     },
+     "execution_count": 62,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.ListFiles()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 74,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciilabii_clean_runthru\\arciilabii_clean_runthru.gdb\\mosaic_ds2<h2>Messages</h2>Start Time: Wednesday, March 3, 2021 11:36:36 PM<br/>Succeeded at Wednesday, March 3, 2021 11:36:38 PM (Elapsed Time: 1.90 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciilabii_clean_runthru\\\\arciilabii_clean_runthru.gdb\\\\mosaic_ds2'>"
+      ]
+     },
+     "execution_count": 74,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.CreateMosaicDataset_management(\n",
+    "    \"arciilabii_clean_runthru.gdb\",\"mosaic_ds2\", \n",
+    "    \"GEOGCS['GCS_North_American_1983',DATUM['D_North_American_1983',SPHEROID['GRS_1980',6378137.0,298.257222101]],PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]]\",\n",
+    "    None, '',\n",
+    "    \"NONE\", None)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 65,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "['PRISM_ppt_30yr_normal_4kmM2_01_bil.bil', 'PRISM_ppt_30yr_normal_4kmM2_02_bil.bil', 'PRISM_ppt_30yr_normal_4kmM2_03_bil.bil', 'PRISM_ppt_30yr_normal_4kmM2_04_bil.bil', 'PRISM_ppt_30yr_normal_4kmM2_05_bil.bil', 'PRISM_ppt_30yr_normal_4kmM2_06_bil.bil', 'PRISM_ppt_30yr_normal_4kmM2_07_bil.bil', 'PRISM_ppt_30yr_normal_4kmM2_08_bil.bil', 'PRISM_ppt_30yr_normal_4kmM2_09_bil.bil', 'PRISM_ppt_30yr_normal_4kmM2_10_bil.bil', 'PRISM_ppt_30yr_normal_4kmM2_11_bil.bil', 'PRISM_ppt_30yr_normal_4kmM2_12_bil.bil']"
+      ]
+     },
+     "execution_count": 65,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "env.workspace = r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\"\n",
+    "\n",
+    "bil_filenames = []\n",
+    "\n",
+    "for file in arcpy.ListFiles():\n",
+    "    if file[-4:] == \".bil\":\n",
+    "        if 'annual' not in file:\n",
+    "            bil_filenames.append(file)\n",
+    "\n",
+    "bil_filenames"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Adding rasters to mosaic dataset:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 76,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>a Layer object<h2>Messages</h2>Start Time: Wednesday, March 3, 2021 11:39:27 PM<br/>2021-03-03T23:39:28.544: Loading raster datasets<br/>2021-03-03T23:39:28.559: Completed crawling 12 data source items. Added 12 mosaic dataset items.<br/>2021-03-03T23:39:28.560: Synchronizing crawled data source items<br/>2021-03-03T23:39:28.564: Synchronizing items associated with raster type instance 'Raster Dataset' [ID: 1].<br/>2021-03-03T23:39:28.629: Completed synchronization: 12 items selected, 12 items synchronized.<br/>2021-03-03T23:39:28.748: Computing cell size levels<br/>2021-03-03T23:39:28.748: Computing unique cell size values<br/>2021-03-03T23:39:28.773: Computing maximum cell size values<br/>2021-03-03T23:39:28.775: Computing minimum cell size values<br/>2021-03-03T23:39:28.777: Updating visibility values of selected items<br/>2021-03-03T23:39:28.788: Computing maximum cell size for mosaic dataset<br/>2021-03-03T23:39:28.792: Completed computing cell size ranges.<br/>2021-03-03T23:39:28.847: Completed building boundary.<br/>Succeeded at Wednesday, March 3, 2021 11:39:29 PM (Elapsed Time: 1.25 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'mosaic_ds2'>"
+      ]
+     },
+     "execution_count": 76,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.AddRastersToMosaicDataset(\"mosaic_ds2\",\n",
+    "                                           \"Raster Dataset\",\n",
+    "                                           r\"'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_01_bil.bil';'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_02_bil.bil';'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_03_bil.bil';'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_04_bil.bil';'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_05_bil.bil';'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_06_bil.bil';'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_07_bil.bil';'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_08_bil.bil';'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_09_bil.bil';'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_10_bil.bil';'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_11_bil.bil';'C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\PRISM_BILS\\PRISM_ppt_30yr_normal_4kmM2_12_bil.bil'\",\n",
+    "                                           \"UPDATE_CELL_SIZES\",\n",
+    "                                           \"UPDATE_BOUNDARY\",\n",
+    "                                           \"NO_OVERVIEWS\",\n",
+    "                                           None, 0, 1500, None,\n",
+    "                                           '', \"SUBFOLDERS\",\n",
+    "                                           \"ALLOW_DUPLICATES\",\n",
+    "                                           \"NO_PYRAMIDS\",\n",
+    "                                           \"NO_STATISTICS\",\n",
+    "                                           \"NO_THUMBNAILS\",\n",
+    "                                           '',\n",
+    "                                           \"NO_FORCE_SPATIAL_REFERENCE\",\n",
+    "                                           \"NO_STATISTICS\",\n",
+    "                                           None,\n",
+    "                                           \"NO_PIXEL_CACHE\",\n",
+    "                                           r\"C:\\Users\\michaelfelzan\\AppData\\Local\\ESRI\\rasterproxies\\mosaic_ds2\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Creating fields in mosaic dataset \"footprint\", representing multi-dimensional variables:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 77,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>a Layer object<h2>Messages</h2>Start Time: Wednesday, March 3, 2021 11:42:11 PM<br/>Adding Variable to AMD_mosaic_ds2_CAT...<br/>Succeeded at Wednesday, March 3, 2021 11:42:11 PM (Elapsed Time: 0.55 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'mosaic_ds2\\\\Footprint'>"
+      ]
+     },
+     "execution_count": 77,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.CalculateField(r\"mosaic_ds2\\Footprint\", \"Variable\", '\"precipit\"', \"PYTHON3\", '', \"TEXT\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 79,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>a Layer object<h2>Messages</h2>Start Time: Wednesday, March 3, 2021 11:43:04 PM<br/>Adding Dimensions to AMD_mosaic_ds2_CAT...<br/>Succeeded at Wednesday, March 3, 2021 11:43:05 PM (Elapsed Time: 0.46 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'mosaic_ds2\\\\Footprint'>"
+      ]
+     },
+     "execution_count": 79,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.CalculateField(r\"mosaic_ds2\\Footprint\", \"Dimensions\", '\"StdTime\"', \"PYTHON3\", '', \"TEXT\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>a Layer object<h2>Messages</h2>Start Time: Thursday, March 4, 2021 12:08:33 AM<br/>Succeeded at Thursday, March 4, 2021 12:08:34 AM (Elapsed Time: 0.22 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'mosaic_ds2\\\\Footprint'>"
+      ]
+     },
+     "execution_count": 1,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.CalculateField(r\"mosaic_ds2\\Footprint\",\n",
+    "                                \"StdTime\",\n",
+    "                                '!Name![28:30] + r\"/01/2019\"',\n",
+    "                                \"PYTHON3\",\n",
+    "                                '',\n",
+    "                                \"TEXT\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### \"Synchronize\" mosaic dataset:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>a Layer object<h2>Messages</h2>Start Time: Thursday, March 4, 2021 12:08:40 AM<br/>2021-03-04T00:08:41.150: Synchronizing items associated with raster type instance 'Raster Dataset' [ID: 1].<br/>2021-03-04T00:08:41.167: Completed synchronization: 12 items selected, 0 items synchronized.<br/>Succeeded at Thursday, March 4, 2021 12:08:41 AM (Elapsed Time: 0.44 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'mosaic_ds2'>"
+      ]
+     },
+     "execution_count": 2,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.management.SynchronizeMosaicDataset(\"mosaic_ds2\",\n",
+    "                                          '',\n",
+    "                                          \"NO_NEW_ITEMS\",\n",
+    "                                          \"SYNC_STALE\",\n",
+    "                                          \"UPDATE_CELL_SIZES\",\n",
+    "                                          \"UPDATE_BOUNDARY\",\n",
+    "                                          \"NO_OVERVIEWS\",\n",
+    "                                          \"NO_PYRAMIDS\",\n",
+    "                                          \"NO_STATISTICS\",\n",
+    "                                          \"NO_THUMBNAILS\",\n",
+    "                                          \"NO_ITEM_CACHE\",\n",
+    "                                          \"REBUILD_RASTER\",\n",
+    "                                          \"UPDATE_FIELDS\",\n",
+    "                                          \"CenterX;CenterY;Dimensions;GroupName;ProductName;Raster;Shape;StdTime;Tag;Variable;ZOrder\",\n",
+    "                                          \"UPDATE_EXISTING_ITEMS\",\n",
+    "                                          \"IGNORE_BROKEN_ITEMS\",\n",
+    "                                          \"SKIP_EXISTING_ITEMS\",\n",
+    "                                          \"REFRESH_INFO\",\n",
+    "                                          \"NO_STATISTICS\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Build Multidimensional info for mosaic dataset:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>a Layer object<h2>Messages</h2>Start Time: Thursday, March 4, 2021 12:08:46 AM<br/>Succeeded at Thursday, March 4, 2021 12:08:47 AM (Elapsed Time: 1.34 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'mosaic_ds2'>"
+      ]
+     },
+     "execution_count": 3,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.md.BuildMultidimensionalInfo(\"mosaic_ds2\",\n",
+    "                                   \"Variable\",\n",
+    "                                   \"StdTime 'time dimension' month\",\n",
+    "                                   \"precipit precipitation water\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Make Multidimensional Raster:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>a Layer object<h2>Messages</h2>Start Time: Thursday, March 4, 2021 12:10:48 AM<br/>Succeeded at Thursday, March 4, 2021 12:10:50 AM (Elapsed Time: 1.62 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'multidimensional.crf'>"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.md.MakeMultidimensionalRasterLayer(\"mosaic_ds2\",\n",
+    "                                         \"multidimensional.crf\",\n",
+    "                                         \"precipit\",\n",
+    "                                         \"ALL\",\n",
+    "                                         None, None,\n",
+    "                                         '', '', '',\n",
+    "                                         None, '',\n",
+    "                                         \"-125.020833333333 24.0625 -66.479166666662 49.937500000002\",\n",
+    "                                         \"DIMENSIONS\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "### Creating Space Time Cube from Multidimensional Raster:"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<h2>Output</h2>C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciilabii_clean_runthru\\precip_spacetimecube2.nc<h2>Messages</h2>Start Time: Thursday, March 4, 2021 12:42:51 AM<br/>WARNING 110290: This tool requires projected data to accurately measure distances.  The Input Multidimensional Raster Layer will be projected to the WGS 1984 World Equidistant Cylindrical projection (WKID 4087).<br/>WARNING 110013: The default Time Step Interval is 1 month.<br/>WARNING 110067: Your spatial reference is not compatible with CF Conventions.  You may experience difficulties using the resulting space-time cube with other NetCDF tools and software.<br/><br/>---------- Space Time Cube Characteristics -----------<br/>Input feature time extent          2019-01-01 00:00:00<br/>                                to 2019-12-01 00:00:00<br/>                                                      <br/>Number of time steps                                12<br/>Time step interval                             1 month<br/>Time step alignment                                End<br/>                                                      <br/>First time step temporal bias                  100.00%<br/>First time step interval                         after<br/>                                   2018-12-01 00:00:00<br/>                                       to on or before<br/>                                   2019-01-01 00:00:00<br/>                                                      <br/>Last time step temporal bias                     0.00%<br/>Last time step interval                          after<br/>                                   2019-11-01 00:00:00<br/>                                       to on or before<br/>                                   2019-12-01 00:00:00<br/>                                                      <br/>Cube extent across space       (coordinates in meters)<br/>Min X                                   -13894065.6611<br/>Min Y                                     2708362.4449<br/>Max X                                    -7451448.3422<br/>Max Y                                     5478284.6852<br/><br/>Locations                  481631<br/>Total observations        5779572<br/><br/>------ Overall Data Trend - PRECIPIT_NONE_ZEROS ------<br/>Trend direction                        Not Significant<br/>Trend statistic                                -0.0686<br/>Trend p-value                                   0.9453<br/><br/>Succeeded at Thursday, March 4, 2021 1:00:49 AM (Elapsed Time: 17 minutes 57 seconds)<br/><style>.rendered_html td, .rendered_html th {text-align: left;}.rendered_html tbody {border: 1px solid black;}</style>"
+      ],
+      "text/plain": [
+       "<Result 'C:\\\\Users\\\\michaelfelzan\\\\Documents\\\\arc ii labby ii\\\\arciilabii_clean_runthru\\\\precip_spacetimecube2.nc'>"
+      ]
+     },
+     "execution_count": 7,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "arcpy.CreateSpaceTimeCubeMDRasterLayer_stpm(\"multidimensional.crf\",\n",
+    "                                            r\"C:\\Users\\michaelfelzan\\Documents\\arc ii labby ii\\arciilabii_clean_runthru\\precip_spacetimecube2.nc\",\n",
+    "                                            \"ZEROS\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Exporting Time Series as Animation"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### Note: as mentioned in the lab report, I did not use a Jupyter Notebook-based ETL for this step, as explained below:"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### This step would be quite easy in a Jupyter Notebook environment where I could PIP install ~ my own ~ packages ... such as ImageIO or PIL. With a module such as PIL, one can simply export 12 .TIFs from the multidimensional mosaic dataset (keeping in mind that the scale/ coloring of each needs to be consistent), and then shuttle all 12 .TIFs into one .GIF. (Example code shown here, under \"Save .GIF with Image.save()  \":\n",
+    "https://note.nkmk.me/en/python-pillow-gif/   )"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### But because I do not yet know how to navigate the incredibly involved package management system of ArcPro ( maybe we can set up a Zoom meeting/ office hours to run thru this), I decided to export my animation using the ArcGIS Pro GUI. "
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "##### I used the multi-dimensional raster (.crf) as the layer for my animation, and then created keyframes for all 12 steps of the time intervals.... and then exported the animation as a .GIF ( .GIF file included in GITHUB Repo ) "
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "ArcGISPro",
+   "language": "Python",
+   "name": "python3"
+  },
+  "language_info": {
+   "file_extension": ".py",
+   "name": "python",
+   "version": "3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
